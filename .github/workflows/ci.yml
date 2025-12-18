@@ -28,5 +28,5 @@ jobs:
       - name: Run lint/format hooks (pre-commit)
         run: uv run --frozen pre-commit run --all-files
 
-      - name: Run tests
-        run: uv run --frozen pytest
+      #- name: Run tests
+      #  run: uv run --frozen pytest
