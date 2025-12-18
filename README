@@ -1,0 +1,41 @@
+# Board Game Ruler
+
+This repo uses **uv** for dependency management and a small set of opinionated tooling:
+- ruff (lint + format)
+- pytest (tests)
+- pre-commit (runs checks locally)
+- GitHub Actions CI (runs checks on PRs)
+
+## Quickstart
+
+```bash
+# 1) Install deps
+uv sync --dev
+
+# 2) Install git hooks
+uv run pre-commit install
+
+# 3) Run checks
+make lint
+make test
+```
+
+**pyproject.toml**: This is the standard config file for Python projects. Tools read their config from here.
+[dependency-groups] defines groups, for example dev. which uv treats as local development.
+[tool.uv] `required-version` forces a minimum uv version for contributers.
+[tool.ruff] and [tool.pytest.ini_options] configure ruff/pytest so nobody needs local editor-specific config.
+Add packages like `uv add package`
+
+**.pre-commit-config.yaml**: Configuration for the `pre-commit` tool. It runs automatically when you commit and checks for formatting, linting, basic sanity. Prevents style drift.
+
+**.github/workflows/ci.yml**: This is a GitHub Actions pipeline. It checks out the code, sets python from .python-version, installs uv and runs pre-commit and pytest.
+
+**uv.lock**: Created automatically when running uv. It's uv's lockfile and pins exact resolved versions for reproducible installs.
+
+**.python-versions**: A pinned Python version file used by pyenv and uv. Ensures developers and CI run the same python version.
+
+**.gitattributes**: Git rules for line endings and text normalization. Windows vs Mac line ending issues are a classic source of noisy diffs. This file helps enforce consistency.
+
+**docker-compose.yml**:
+
+**.vscode/settings.json**: Workspace-specific VS Code settings (comitted). Ensures the repo opens with `.venv` interpreter path and zsh as default terminal.
