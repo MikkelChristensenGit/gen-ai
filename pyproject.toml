@@ -11,6 +11,7 @@ dependencies = []
 [dependency-groups]
 # Dev-only tooling (PEP 735 / supported by uv)
 dev = [
+  "mypy>=1.19.1",
   "pre-commit>=3.7",
   "pytest>=8.0",
   "ruff>=0.12",
@@ -33,3 +34,9 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+check_untyped_defs = true
+ignore_missing_imports = true
