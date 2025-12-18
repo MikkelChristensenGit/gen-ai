@@ -1,0 +1,35 @@
+[project]
+name = "boardgame-ruler"
+version = "0.1.0"
+description = "A small RAG chatbot that answers board game rules questions."
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Keep runtime deps empty for now; add later with: uv add fastapi
+dependencies = []
+
+[dependency-groups]
+# Dev-only tooling (PEP 735 / supported by uv)
+dev = [
+  "pre-commit>=3.7",
+  "pytest>=8.0",
+  "ruff>=0.12",
+]
+
+[tool.uv]
+# Enforce a minimum uv version for contributors.
+required-version = ">=0.5.0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F/I: basic linting + import sorting
+# UP: pyupgrade
+# B: bugbear
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
