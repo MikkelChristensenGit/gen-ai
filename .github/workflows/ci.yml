@@ -12,7 +12,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # Use the pinned Python version in .python-version (fast due to GitHub caching).
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
