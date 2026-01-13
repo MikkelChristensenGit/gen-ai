@@ -13,4 +13,11 @@ test:
 	uv run pytest
 
 qdrant-up:
-	docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
+	@docker start qdrant 2>/dev/null || \
+	docker run -d --name qdrant \
+		-p 6333:6333 -p 6334:6334 \
+		-v qdrant_storage:/qdrant/storage \
+		qdrant/qdrant:latest
+
+qdrant-down:
+	docker stop qdrant
