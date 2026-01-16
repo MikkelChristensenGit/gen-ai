@@ -1,15 +1,16 @@
 from pathlib import Path
 
-from langchain_community.document_loaders import PyPDFLoader
+# from langchain_community.document_loaders import PyPDFLoader
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from pdf_loader import load_pdfs
 
 QDRANT_URL = "http://localhost:6333"
 COLLECTION = "boardgame_rules_v0"
 PDF_DIR = Path("data/rules")
 
-
+"""
 def load_pdfs(pdf_dir: Path):
     docs = []
     for pdf_path in sorted(pdf_dir.glob("*.pdf")):
@@ -21,6 +22,7 @@ def load_pdfs(pdf_dir: Path):
             d.metadata["source_name"] = pdf_path.name
         docs.extend(pages)
     return docs
+"""
 
 
 def main():
