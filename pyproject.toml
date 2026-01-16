@@ -6,7 +6,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 # Keep runtime deps empty for now; add later with: uv add fastapi
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+    "langchain>=1.2.3",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.7",
+    "langchain-qdrant>=1.1.0",
+    "pypdf>=6.6.0",
+    "qdrant-client>=1.16.2",
+]
 
 [dependency-groups]
 # Dev-only tooling (PEP 735 / supported by uv)
