@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
@@ -13,7 +15,6 @@ def main() -> None:
     embeddings = OpenAIEmbeddings(model=settings.EMBED_MODEL)
 
     # 2) Connect to existing Qdrant collection
-    # Most setups support this constructor directly:
     vectorstore = QdrantVectorStore.from_existing_collection(
         url=settings.QDRANT_URL,
         collection_name=settings.COLLECTION,
@@ -29,6 +30,7 @@ def main() -> None:
     # 4) Chat model for answer generation
     llm = ChatOpenAI(model=settings.CHAT_MODEL, temperature=0)
 
+    history: list[dict[Any, Any]] = []
     print(f"Connected to Qdrant collection: {settings.COLLECTION}")
     print("Ask a question (empty line to quit)\n")
 
@@ -53,17 +55,23 @@ def main() -> None:
 
         context = format_context(retrieved)
 
-        # 6) Generate grounded answer
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"Question:\n{question}\n\nContext excerpts:\n{context}",
-            },
-        ]
-        answer = llm.invoke(messages).content
+        messages = (
+            [{"role": "system", "content": SYSTEM_PROMPT}]
+            + history
+            + [
+                {
+                    "role": "user",
+                    "content": f"Question:\n{question}\n\nContext excerpts:\n{context}",
+                }
+            ]
+        )
 
+        answer = llm.invoke(messages).content
         print("\nA:", answer, "\n")
+        print(type(question))
+        print(type(answer))
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
 
 
 if __name__ == "__main__":
