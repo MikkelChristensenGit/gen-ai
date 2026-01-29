@@ -1,10 +1,15 @@
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # from langchain_community.document_loaders import PyPDFLoader
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pdf_loader import load_pdfs
+
+load_dotenv()
+
 
 QDRANT_URL = "http://localhost:6333"
 COLLECTION = "boardgame_rules_v0"

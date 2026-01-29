@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     EMBED_MODEL: str = Field(default="text-embedding-3-small")
     CHAT_MODEL: str = Field(default="gpt-4o-mini")
     TOP_K: int = Field(default=5)
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
 
 @lru_cache

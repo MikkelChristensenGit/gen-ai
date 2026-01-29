@@ -74,6 +74,20 @@ class QdrantRetriever:
         using: str | None = None,
         score_threshold: float | None = None,
     ) -> list[list[tuple[Document, float]]]:
+        """
+        Builds a batch of Qdrant QueryRequests from the input dense vectors,
+        runs them in one call, then converts each result set into (Document, score) pairs with metadata.
+        Takes a list of dense vectors plus query options (collection_name, limit
+        and optional filter, using, score_threshold).
+        For each vector, builds a models.QueryRequest with:
+        - with_payload=True (so it fetches stored payload)
+        - with_vector=False (we don't need the stored vector back)
+        Runs client.query_batch_points ONCE with the full list of requests.
+        Maps each query's ScoredPoint results into a list of (Document, score) where:
+        - Document.page_content comes from payload['page_content']
+        - Document.metadata comes from payload['metadata'] plus _id and collection_name
+        Returns a list of results, one per input vector `list[list[(Document, score)]]`.
+        """
         requests = [
             models.QueryRequest(
                 query=v,
