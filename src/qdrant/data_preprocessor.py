@@ -9,6 +9,8 @@ from pdf_loader import load_pdfs
 QDRANT_URL = "http://localhost:6333"
 COLLECTION = "boardgame_rules_v0"
 PDF_DIR = Path("data/rules")
+# COLLECTION = "hofor_kravspec"
+# PDF_DIR = Path("pdf_downloads")
 
 """
 def load_pdfs(pdf_dir: Path):

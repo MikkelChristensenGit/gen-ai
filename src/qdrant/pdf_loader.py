@@ -5,7 +5,7 @@ from langchain_community.document_loaders import PyPDFLoader
 
 def load_pdfs(pdf_dir: Path):
     docs = []
-    for pdf_path in sorted(pdf_dir.glob("*.pdf")):
+    for pdf_path in sorted(pdf_dir.rglob("*.pdf")):
         loader = PyPDFLoader(str(pdf_path))
         pages = loader.load()  # one Document per page
 
