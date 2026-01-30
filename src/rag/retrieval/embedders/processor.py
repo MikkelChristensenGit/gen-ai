@@ -45,7 +45,7 @@ class ParserComponent:
     async def run(self, query: str) -> list[ParsedQuery]:
         payload = {"query": query}
         # Run all parsers concurrently (only 1 for now..)
-        tasks = [asyncio.create_task(p.ainvoke(payload)) for p in self.parsers]
+        tasks = [asyncio.create_task(parser.ainvoke(payload)) for parser in self.parsers]
         outputs = await asyncio.gather(*tasks)
 
         parsed: list[ParsedQuery] = []
