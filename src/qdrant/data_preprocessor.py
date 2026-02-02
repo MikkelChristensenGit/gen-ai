@@ -38,7 +38,7 @@ def main():
     if not docs:
         raise SystemExit(f"No PDFs found in {PDF_DIR.resolve()}")
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
     chunks = splitter.split_documents(docs)
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
