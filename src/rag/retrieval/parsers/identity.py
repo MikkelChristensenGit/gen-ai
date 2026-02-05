@@ -12,15 +12,12 @@ class QueryIdentity:
     - async API (ainvoke)
     - standard payload ({"query": ...})
     - stable identity (parser_type = ParserType.QUERY_IDENTITY)
-    query.strip() removes leading and trailing whitespace characters (spaces, tabs,
-        newlines, etc.) from the query string. For example, "  hello world  ".strip()
-        returns "hello world"
     """
 
     parser_type = ParserType.QUERY_IDENTITY
 
     async def ainvoke(self, payload: dict[str, Any]) -> str:
         query = payload.get("query")
-        if not isinstance(query, str) or not query.strip():
+        if not isinstance(query, str):
             raise ValueError("payload must contain non-empty `query` str")
-        return query.strip()
+        return query

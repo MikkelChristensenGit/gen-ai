@@ -68,10 +68,9 @@ class EmbedComponent:
 
     @classmethod
     def from_default(cls, *, embed_model: str) -> EmbedComponent:
-        # Step A mapping: QueryIdentity -> Dense only
-        vector_types_by_parser = {
-            ParserType.QUERY_IDENTITY: {VectorType.DENSE},
-        }
+        # QueryIdentity -> Dense
+        # QueryNormalizer -> Dense
+        vector_types_by_parser = {ParserType.QUERY_IDENTITY: {VectorType.DENSE}}
         return cls(dense=DenseEmbedder(embed_model), vector_types_by_parser=vector_types_by_parser)
 
     async def run(self, parsed: list[ParsedQuery]) -> list[EmbeddedItem]:

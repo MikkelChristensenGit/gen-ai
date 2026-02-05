@@ -1,7 +1,7 @@
 [project]
-name = "boardgame-ruler"
+name = "hofor"
 version = "0.1.0"
-description = "A small RAG chatbot that answers board game rules questions."
+description = "A small RAG chatbot for Hofor"
 readme = "README.md"
 requires-python = ">=3.12"
 

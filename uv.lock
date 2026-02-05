@@ -146,47 +146,6 @@ wheels = [
 ]
 
 [[package]]
-name = "boardgame-ruler"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dotenv" },
-    { name = "langchain" },
-    { name = "langchain-community" },
-    { name = "langchain-openai" },
-    { name = "langchain-qdrant" },
-    { name = "pypdf" },
-    { name = "qdrant-client" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "langchain", specifier = ">=1.2.3" },
-    { name = "langchain-community", specifier = ">=0.4.1" },
-    { name = "langchain-openai", specifier = ">=1.1.7" },
-    { name = "langchain-qdrant", specifier = ">=1.1.0" },
-    { name = "pypdf", specifier = ">=6.6.0" },
-    { name = "qdrant-client", specifier = ">=1.16.2" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.19.1" },
-    { name = "pre-commit", specifier = ">=3.7" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "ruff", specifier = ">=0.12" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -506,6 +465,47 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1d/17/afa56379f94ad0fe8defd37d6eb3f89a25404ffc71d4d848893d270325fc/h2-4.3.0.tar.gz", hash = "sha256:6c59efe4323fa18b47a632221a1888bd7fde6249819beda254aeca909f221bf1", size = 2152026, upload-time = "2025-08-23T18:12:19.778Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/69/b2/119f6e6dcbd96f9069ce9a2665e0146588dc9f88f29549711853645e736a/h2-4.3.0-py3-none-any.whl", hash = "sha256:c438f029a25f7945c69e0ccf0fb951dc3f73a5f6412981daee861431b70e2bdd", size = 61779, upload-time = "2025-08-23T18:12:17.779Z" },
+]
+
+[[package]]
+name = "hofor"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dotenv" },
+    { name = "langchain" },
+    { name = "langchain-community" },
+    { name = "langchain-openai" },
+    { name = "langchain-qdrant" },
+    { name = "pypdf" },
+    { name = "qdrant-client" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "langchain", specifier = ">=1.2.3" },
+    { name = "langchain-community", specifier = ">=0.4.1" },
+    { name = "langchain-openai", specifier = ">=1.1.7" },
+    { name = "langchain-qdrant", specifier = ">=1.1.0" },
+    { name = "pypdf", specifier = ">=6.6.0" },
+    { name = "qdrant-client", specifier = ">=1.16.2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.19.1" },
+    { name = "pre-commit", specifier = ">=3.7" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.12" },
 ]
 
 [[package]]
