@@ -10,6 +10,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pdf_loader import load_pdfs
 
 PDF_DIR = Path("data/rules")
+# COLLECTION = "hofor_kravspec"
+# PDF_DIR = Path("pdf_downloads")
 
 """
 def load_pdfs(pdf_dir: Path):
@@ -40,7 +42,7 @@ def main():
     if not docs:
         raise SystemExit(f"No PDFs found in {PDF_DIR.resolve()}")
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=150)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)
     chunks = splitter.split_documents(docs)
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
