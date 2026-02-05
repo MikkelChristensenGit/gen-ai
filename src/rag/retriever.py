@@ -1,33 +1,27 @@
-from __future__ import annotations
-
+import asyncio
 from typing import Any
 
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_qdrant import QdrantVectorStore
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
 
 from prompts.system_prompt import SYSTEM_PROMPT
+from rag.retrieval.pipeline import RetrievalPipeline
 from rag.settings import settings
 from rag.utils import RetrievedChunk, format_context
 
+load_dotenv()
 
-def main() -> None:
-    # 1) Same embedding model used at ingestion time
-    embeddings = OpenAIEmbeddings(model=settings.EMBED_MODEL)
 
-    # 2) Connect to existing Qdrant collection
-    vectorstore = QdrantVectorStore.from_existing_collection(
-        url=settings.QDRANT_URL,
+async def repl() -> None:
+    pipeline = RetrievalPipeline.from_default(
+        qdrant_url=settings.QDRANT_URL,
+        qdrant_api_key=getattr(settings, "QDRANT_API_KEY", None),
         collection_name=settings.COLLECTION,
-        embedding=embeddings,
+        embed_model=settings.EMBED_MODEL,
+        candidate_limit=settings.TOP_K,
+        top_k=settings.TOP_K,
     )
 
-    # 3) Retriever (start simple)
-    retriever = vectorstore.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": settings.TOP_K},
-    )
-
-    # 4) Chat model for answer generation
     llm = ChatOpenAI(model=settings.CHAT_MODEL, temperature=0)
 
     history: list[dict[Any, Any]] = []
@@ -35,43 +29,41 @@ def main() -> None:
     print("Ask a question (empty line to quit)\n")
 
     while True:
-        question = input("Q: ").strip()
+        question = (await asyncio.to_thread(input, "Q: ")).strip()
         if not question:
             break
 
-        # 5) Retrieve relevant chunks (this embeds the query under the hood)
-        docs = retriever.invoke(question)
+        docs = await pipeline.ainvoke(question)
 
         retrieved: list[RetrievedChunk] = []
-        for d in docs:
-            md = d.metadata or {}
+        for doc, _score in docs:
+            md = doc.metadata or {}
             retrieved.append(
                 RetrievedChunk(
-                    text=d.page_content,
+                    text=doc.page_content,
                     source_name=md.get("source_name") or md.get("source") or "unknown",
                     page=md.get("page"),
                 )
             )
 
         context = format_context(retrieved)
-
-        messages = (
-            [{"role": "system", "content": SYSTEM_PROMPT}]
-            + history
-            + [
-                {
-                    "role": "user",
-                    "content": f"Question:\n{question}\n\nContext excerpts:\n{context}",
-                }
-            ]
-        )
-
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": f"Question:\n{question}\n\nContext excerpts:\n{context}",
+            },
+        ]
         answer = llm.invoke(messages).content
         print("\nA:", answer, "\n")
         print(type(question))
         print(type(answer))
         history.append({"role": "user", "content": question})
         history.append({"role": "assistant", "content": answer})
+
+
+def main() -> None:
+    asyncio.run(repl())
 
 
 if __name__ == "__main__":

@@ -72,9 +72,7 @@ def load_seen() -> tuple[set[str], dict[str, str]]:
         hashes_raw = data.get("hashes", [])
         by_url_raw = data.get("by_url", {})
         seen_hashes = set(h for h in hashes_raw if isinstance(h, str))
-        by_url: dict[str, str] = {
-            k: v for k, v in by_url_raw.items() if isinstance(k, str) and isinstance(v, str)
-        }
+        by_url: dict[str, str] = {k: v for k, v in by_url_raw.items() if isinstance(k, str) and isinstance(v, str)}
         return seen_hashes, by_url
 
     if isinstance(data, list):
