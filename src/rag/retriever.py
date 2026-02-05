@@ -23,6 +23,7 @@ async def repl() -> None:
 
     llm = ChatOpenAI(model=settings.CHAT_MODEL, temperature=0)
 
+    history: list[dict[Any, Any]] = []
     print(f"Connected to Qdrant collection: {settings.COLLECTION}")
     print("Ask a question (empty line to quit)\n")
 
@@ -54,6 +55,10 @@ async def repl() -> None:
         ]
         answer = llm.invoke(messages).content
         print("\nA:", answer, "\n")
+        print(type(question))
+        print(type(answer))
+        history.append({"role": "user", "content": question})
+        history.append({"role": "assistant", "content": answer})
 
 
 def main() -> None:
