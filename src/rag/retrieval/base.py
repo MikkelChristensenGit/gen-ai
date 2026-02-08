@@ -139,7 +139,7 @@ class EmbeddedItem(TypedDict):
 class QueryParser(Protocol):
     parser_type: ParserType
 
-    async def ainvoke(self, payload: dict[str, Any]) -> str: ...
+    async def ainvoke(self, payload: dict[str, Any]) -> str | list[str]: ...
 
 
 class Embedder(Protocol):
