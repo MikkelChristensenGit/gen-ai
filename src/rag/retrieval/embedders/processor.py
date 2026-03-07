@@ -44,13 +44,23 @@ class ParserComponent:
 
     async def run(self, query: str) -> list[ParsedQuery]:
         payload = {"query": query}
-        # Run all parsers concurrently (only 1 for now..)
+        # Run all parsers concurrently
         tasks = [asyncio.create_task(parser.ainvoke(payload)) for parser in self.parsers]
         outputs = await asyncio.gather(*tasks)
 
         parsed: list[ParsedQuery] = []
-        for parser, text in zip(self.parsers, outputs, strict=True):
-            parsed.append({"parser": parser.parser_type, "text": text})
+        for parser, output in zip(self.parsers, outputs, strict=True):
+            # self.parsers = [QueryIdentity(), QueryExpansion()]
+            # outputs = ["original query", ["exp1", "exp2"]]
+            if isinstance(output, str):
+                texts = [output]
+            elif isinstance(output, list) and all(isinstance(item, str) for item in output):
+                texts = output
+            else:
+                raise ValueError("Parser output must be a `str` or `list[str]`")
+
+            for text in texts:
+                parsed.append({"parser": parser.parser_type, "text": text})
         return parsed
 
 
@@ -70,7 +80,10 @@ class EmbedComponent:
     def from_default(cls, *, embed_model: str) -> EmbedComponent:
         # QueryIdentity -> Dense
         # QueryNormalizer -> Dense
-        vector_types_by_parser = {ParserType.QUERY_IDENTITY: {VectorType.DENSE}}
+        vector_types_by_parser = {
+            ParserType.QUERY_IDENTITY: {VectorType.DENSE},
+            ParserType.QUERY_EXPANSION: {VectorType.DENSE},
+        }
         return cls(dense=DenseEmbedder(embed_model), vector_types_by_parser=vector_types_by_parser)
 
     async def run(self, parsed: list[ParsedQuery]) -> list[EmbeddedItem]:

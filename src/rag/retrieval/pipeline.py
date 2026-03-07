@@ -3,12 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from langchain_core.documents import Document
+from langchain_openai import ChatOpenAI
 
+from prompts.query_expansion import query_expansion_prompt
 from rag.retrieval.aggregators.simple import SimpleScoreAggregator
 from rag.retrieval.base import ParserType, RequestArgs, RetrievalType, RetrieverConfig
 from rag.retrieval.embedders.processor import EmbedComponent, ParserComponent
 from rag.retrieval.parsers.identity import QueryIdentity
+from rag.retrieval.parsers.query_expansion import QueryExpansion
 from rag.retrieval.retrievers.processor import RetrievalComponent
+from rag.settings import settings
 
 """
 Top level orchestrator.
@@ -52,14 +56,17 @@ class RetrievalPipeline:
         candidate_limit: int,
         top_k: int,
     ) -> RetrievalPipeline:
-        parser_component = ParserComponent(parsers=[QueryIdentity()])
+        llm = ChatOpenAI(model=settings.CHAT_MODEL)
+        parser_component = ParserComponent(
+            parsers=[QueryIdentity(), QueryExpansion(prompt=query_expansion_prompt, llm=llm)]
+        )
         embed_component = EmbedComponent.from_default(embed_model=embed_model)
         retrieval_component = RetrievalComponent.from_default(qdrant_url=qdrant_url, api_key=qdrant_api_key)
         aggregator = SimpleScoreAggregator()
 
         configs = [
             RetrieverConfig(
-                parser=[ParserType.QUERY_IDENTITY],
+                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_EXPANSION],
                 type=RetrievalType.DENSE,
                 request_args=RequestArgs(
                     collection_name=collection_name,
