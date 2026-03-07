@@ -1,5 +1,9 @@
 .venv/
-__pycache__/
-*.pyc
 .env
+
 /pdf_downloads
+/notebooks
+
+*.pyc
+__pycache__/
+.DS_Store

@@ -16,18 +16,18 @@ class QueryExpansion:
 
     parser_type = ParserType.QUERY_EXPANSION
 
-    def __init__(self, payload: dict[str, Any], prompt: ChatPromptTemplate, llm) -> None:
-        self.query = payload.get("query", "")
+    def __init__(self, prompt: ChatPromptTemplate, llm) -> None:
         self.prompt = prompt
         self.llm = llm
 
     def chain(self):
-        chain = self.prompt | self.llm | StrOutputParser()
-        return chain
+        return self.prompt | self.llm | StrOutputParser()
 
     async def ainvoke(self, payload: dict[str, Any]) -> list[str]:
-        if not isinstance(payload.get("query", ""), str):
+        query = payload.get("query", "")
+        if not isinstance(query, str):
             raise ValueError("payload must be of type `str`")
-        self.query = payload["query"]
-        queries = self.chain()
-        return queries
+
+        expansions = await self.chain().ainvoke({"query": query})
+        # split by new lines, remove empty results, and trim whitespace
+        return [expansion.strip() for expansion in expansions.splitlines() if expansion.strip()]
