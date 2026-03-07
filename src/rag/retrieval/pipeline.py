@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
-from rag.prompts.query_expansion import query_expansion_prompt
+from prompts.query_expansion import query_expansion_prompt
 from rag.retrieval.aggregators.simple import SimpleScoreAggregator
 from rag.retrieval.base import ParserType, RequestArgs, RetrievalType, RetrieverConfig
 from rag.retrieval.embedders.processor import EmbedComponent, ParserComponent
@@ -34,6 +35,8 @@ As complexity grows, we want to keep construction separate from execution:
 - execution stays simple and testable
 - construction becomes config-driven
 """
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -89,6 +92,20 @@ class RetrievalPipeline:
 
     async def ainvoke(self, query: str) -> list[tuple[Document, float]]:
         parsed = await self.parser_component.run(query)
+        logger.info("Parsed queries: %s", [f"{p['parser']} -> {p['text']}" for p in parsed])
         embeddings = await self.embed_component.run(parsed)
         results = await self.retrieval_component.run(embeddings, self.configs)
-        return self.aggregator.aggregate(results, top_k=self.top_k)
+        aggregated = self.aggregator.aggregate(results, top_k=self.top_k)
+        logger.info(
+            "Retrieved chunks: %s",
+            [
+                {
+                    "score": score,
+                    "source": (doc.metadata or {}).get("source_name") or (doc.metadata or {}).get("source"),
+                    "page": (doc.metadata or {}).get("page"),
+                    "preview": (doc.page_content or "")[:200],
+                }
+                for doc, score in aggregated
+            ],
+        )
+        return aggregated
