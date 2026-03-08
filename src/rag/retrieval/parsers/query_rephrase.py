@@ -11,9 +11,9 @@ from rag.retrieval.base import ParserType
 
 class QueryRephrase:
     """
-    Rephrase the user query into into a better search query 
-    by resolving pronouns, adding missing context from the chat, 
-    fixing typos, and making the query more explicit, 
+    Rephrase the user query into into a better search query
+    by resolving pronouns, adding missing context from the chat,
+    fixing typos, and making the query more explicit,
     while keeping the original intent intact.
     """
 
@@ -32,6 +32,6 @@ class QueryRephrase:
             raise ValueError("payload must be of type `str`")
 
         rephrase = await self.chain().ainvoke({"query": query})
-        #print(f"Rephrased query: {rephrase}")
+        # print(f"Rephrased query: {rephrase}")
         # split by new lines, remove empty results, and trim whitespace
         return rephrase

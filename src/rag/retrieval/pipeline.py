@@ -60,9 +60,11 @@ class RetrievalPipeline:
     ) -> RetrievalPipeline:
         llm = ChatOpenAI(model=settings.CHAT_MODEL)
         parser_component = ParserComponent(
-            parsers=[QueryIdentity(),
-                     QueryRephrase(prompt=query_rephrase_prompt, llm=llm),
-                     QueryExpansion(prompt=query_expansion_prompt, llm=llm)]
+            parsers=[
+                QueryIdentity(),
+                QueryRephrase(prompt=query_rephrase_prompt, llm=llm),
+                QueryExpansion(prompt=query_expansion_prompt, llm=llm),
+            ]
         )
         embed_component = EmbedComponent.from_default(embed_model=embed_model)
         retrieval_component = RetrievalComponent.from_default(qdrant_url=qdrant_url, api_key=qdrant_api_key)
