@@ -2,8 +2,8 @@ import asyncio
 from typing import Any
 
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 
+from rag.llm_models import build_chat_llm, llm_model
 from prompts.system_prompt import SYSTEM_PROMPT
 from rag.retrieval.pipeline import RetrievalPipeline
 from rag.settings import settings
@@ -22,7 +22,7 @@ async def repl() -> None:
         top_k=settings.TOP_K,
     )
 
-    llm = ChatOpenAI(model=settings.CHAT_MODEL, temperature=0)
+    llm = build_chat_llm(llm_model.ANSWERER, temperature=0)
 
     history: list[dict[Any, Any]] = []
     print(f"Connected to Qdrant collection: {settings.COLLECTION}")

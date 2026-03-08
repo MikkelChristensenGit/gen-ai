@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     COLLECTION: str = Field(default="boardgame_rules_v0")
     EMBED_MODEL: str = Field(default="text-embedding-3-small")
     CHAT_MODEL: str = Field(default="gpt-4o-mini")
+    REPHRASER_MODEL: str = Field(default="gpt-4o-mini")
+    EXPANDER_MODEL: str = Field(default="gpt-4o-mini")
     TOP_K: int = Field(default=5)
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
