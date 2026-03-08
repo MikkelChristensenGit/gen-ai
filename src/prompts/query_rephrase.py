@@ -2,7 +2,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 query_rephrase_prompt = ChatPromptTemplate.from_template(
     "You are a query rewriter for retrieval.\n"
-    "Rewrite the user's message into one clear, standalone search query for semantic retrieval.\n"
+    "Rewrite the user's message into one clear, standalone search query for retrieval.\n"
     "\n"
     "Rules:\n"
     "- Preserve the original intent.\n"
