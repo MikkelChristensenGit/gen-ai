@@ -8,12 +8,15 @@ from langchain_core.prompts import ChatPromptTemplate
 from rag.retrieval.base import ParserType
 
 
-class QueryExpansion:
+class QueryRephrase:
     """
-    Expand the user query into 1-3 distinct expansions that keep the original intent intact.
+    Rephrase the user query into into a better search query
+    by resolving pronouns, adding missing context from the chat,
+    fixing typos, and making the query more explicit,
+    while keeping the original intent intact.
     """
 
-    parser_type = ParserType.QUERY_EXPANSION
+    parser_type = ParserType.QUERY_REPHRASE
 
     def __init__(self, prompt: ChatPromptTemplate, llm) -> None:
         self.prompt = prompt
@@ -22,11 +25,10 @@ class QueryExpansion:
     def chain(self):
         return self.prompt | self.llm | StrOutputParser()
 
-    async def ainvoke(self, payload: dict[str, Any]) -> list[str]:
+    async def ainvoke(self, payload: dict[str, Any]) -> str:
         query = payload.get("query", "")
         if not isinstance(query, str):
             raise ValueError("payload must be of type `str`")
 
-        expansions = await self.chain().ainvoke({"query": query})
-        # split by new lines, remove empty results, and trim whitespace
-        return [expansion.strip() for expansion in expansions.splitlines() if expansion.strip()]
+        rephrase = await self.chain().ainvoke({"query": query})
+        return rephrase

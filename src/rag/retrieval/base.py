@@ -41,6 +41,7 @@ class ParserType(StrEnum):
 
     QUERY_IDENTITY = auto()
     QUERY_EXPANSION = auto()
+    QUERY_REPHRASE = auto()
     # later: HYDE, MULTI_QUERY, ENTITY_EXTRACTION
 
 
