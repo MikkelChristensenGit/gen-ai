@@ -6,11 +6,13 @@ from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
 from prompts.query_expansion import query_expansion_prompt
+from prompts.query_rephrase import query_rephrase_prompt
 from rag.retrieval.aggregators.simple import SimpleScoreAggregator
 from rag.retrieval.base import ParserType, RequestArgs, RetrievalType, RetrieverConfig
 from rag.retrieval.embedders.processor import EmbedComponent, ParserComponent
 from rag.retrieval.parsers.identity import QueryIdentity
 from rag.retrieval.parsers.query_expansion import QueryExpansion
+from rag.retrieval.parsers.query_rephrase import QueryRephrase
 from rag.retrieval.retrievers.processor import RetrievalComponent
 from rag.settings import settings
 
@@ -58,7 +60,9 @@ class RetrievalPipeline:
     ) -> RetrievalPipeline:
         llm = ChatOpenAI(model=settings.CHAT_MODEL)
         parser_component = ParserComponent(
-            parsers=[QueryIdentity(), QueryExpansion(prompt=query_expansion_prompt, llm=llm)]
+            parsers=[QueryIdentity(),
+                     QueryRephrase(prompt=query_rephrase_prompt, llm=llm),
+                     QueryExpansion(prompt=query_expansion_prompt, llm=llm)]
         )
         embed_component = EmbedComponent.from_default(embed_model=embed_model)
         retrieval_component = RetrievalComponent.from_default(qdrant_url=qdrant_url, api_key=qdrant_api_key)
@@ -66,7 +70,7 @@ class RetrievalPipeline:
 
         configs = [
             RetrieverConfig(
-                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_EXPANSION],
+                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_REPHRASE, ParserType.QUERY_EXPANSION],
                 type=RetrievalType.DENSE,
                 request_args=RequestArgs(
                     collection_name=collection_name,

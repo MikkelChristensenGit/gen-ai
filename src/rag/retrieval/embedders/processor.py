@@ -82,6 +82,7 @@ class EmbedComponent:
         # QueryNormalizer -> Dense
         vector_types_by_parser = {
             ParserType.QUERY_IDENTITY: {VectorType.DENSE},
+            ParserType.QUERY_REPHRASE: {VectorType.DENSE},
             ParserType.QUERY_EXPANSION: {VectorType.DENSE},
         }
         return cls(dense=DenseEmbedder(embed_model), vector_types_by_parser=vector_types_by_parser)
