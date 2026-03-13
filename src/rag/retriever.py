@@ -1,31 +1,29 @@
 import asyncio
 from typing import Any
 
-from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
 from prompts.system_prompt import SYSTEM_PROMPT
+from qdrant.settings import qdrant_settings
 from rag.retrieval.pipeline import RetrievalPipeline
-from rag.settings import settings
+from rag.settings import retrieval_settings
 from rag.utils import RetrievedChunk, format_context
-
-load_dotenv()
 
 
 async def repl() -> None:
     pipeline = RetrievalPipeline.from_default(
-        qdrant_url=settings.QDRANT_URL,
-        qdrant_api_key=getattr(settings, "QDRANT_API_KEY", None),
-        collection_name=settings.COLLECTION,
-        embed_model=settings.EMBED_MODEL,
-        candidate_limit=settings.TOP_K,
-        top_k=settings.TOP_K,
+        qdrant_url=qdrant_settings.QDRANT_URL,
+        qdrant_api_key=qdrant_settings.QDRANT_API_KEY,
+        collection_name=qdrant_settings.COLLECTION,
+        dense_embed_model=retrieval_settings.DENSE_EMBED_MODEL,
+        candidate_limit=retrieval_settings.TOP_K,
+        top_k=retrieval_settings.TOP_K,
     )
 
-    llm = ChatOpenAI(model=settings.CHAT_MODEL, temperature=0)
+    llm = ChatOpenAI(model=retrieval_settings.CHAT_MODEL, temperature=0)
 
     history: list[dict[Any, Any]] = []
-    print(f"Connected to Qdrant collection: {settings.COLLECTION}")
+    print(f"Connected to Qdrant collection: {qdrant_settings.COLLECTION}")
     print("Ask a question (empty line to quit)\n")
 
     while True:

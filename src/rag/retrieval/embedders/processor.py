@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Mapping
 
 from rag.retrieval.base import (
+    DenseVector,
     EmbeddedItem,
     ParsedQuery,
     ParserType,
@@ -11,6 +12,7 @@ from rag.retrieval.base import (
     VectorType,
 )
 from rag.retrieval.embedders.dense import DenseEmbedder
+from rag.retrieval.embedders.sparse_bm25 import SparseBM25Embedder
 
 # This is where the architecture becomes real
 # It has two orchestration components:
@@ -71,51 +73,77 @@ class EmbedComponent:
         self,
         *,
         dense: DenseEmbedder,
+        sparse: SparseBM25Embedder,
         vector_types_by_parser: Mapping[ParserType, set[VectorType]],
     ) -> None:
         self.dense = dense
+        self.sparse = sparse
         self.vector_types_by_parser = vector_types_by_parser
 
     @classmethod
-    def from_default(cls, *, embed_model: str) -> EmbedComponent:
-        # QueryIdentity -> Dense
-        # QueryNormalizer -> Dense
+    def from_default(
+        cls,
+        *,
+        dense_embed_model: str,
+        sparse_embed_model: str,
+        sparse_batch_size: int,
+    ) -> EmbedComponent:
         vector_types_by_parser = {
-            ParserType.QUERY_IDENTITY: {VectorType.DENSE},
-            ParserType.QUERY_EXPANSION: {VectorType.DENSE},
+            ParserType.QUERY_IDENTITY: {VectorType.DENSE, VectorType.SPARSE},
+            ParserType.QUERY_EXPANSION: {VectorType.DENSE, VectorType.SPARSE},
         }
-        return cls(dense=DenseEmbedder(embed_model), vector_types_by_parser=vector_types_by_parser)
+        return cls(
+            dense=DenseEmbedder(model=dense_embed_model),
+            sparse=SparseBM25Embedder(model_name=sparse_embed_model, batch_size=sparse_batch_size),
+            vector_types_by_parser=vector_types_by_parser,
+        )
 
     async def run(self, parsed: list[ParsedQuery]) -> list[EmbeddedItem]:
         # Collect all dense text in one batch
         dense_texts: list[tuple[ParserType, str]] = []
+        sparse_texts: list[tuple[ParserType, str]] = []
         for pq in parsed:
             parser_type = pq["parser"]
             text = pq["text"]
             if VectorType.DENSE in self.vector_types_by_parser.get(parser_type, set()):
                 dense_texts.append((parser_type, text))
+            if VectorType.SPARSE in self.vector_types_by_parser.get(parser_type, set()):
+                sparse_texts.append((parser_type, text))
 
-        embeddings: list[EmbeddedItem] = []
+        dense_embeddings: list[EmbeddedItem] = []
+        sparse_embeddings: list[EmbeddedItem] = []
 
-        if not dense_texts:
-            return embeddings
+        if not dense_texts and not sparse_texts:
+            raise ValueError("No texts to embed based on the provided vector_types_by_parser mapping.")
 
+        # Dense
         # Separate the texts from their parser types for embedding
-        texts = []
-        for _, text in dense_texts:
-            texts.append(text)
-
+        dense_texts_list = [text for _, text in dense_texts]
         # One dense batch call
-        vectors = await self.dense.aembed_batch(texts)
+        if dense_texts_list:
+            dense_vectors: list[DenseVector] = await self.dense.aembed_batch(dense_texts_list)
+            # Reattach metadata + build EmbeddingItem objects
+            for (parser_type, dense_text), dense_vec in zip(dense_texts, dense_vectors, strict=True):
+                dense_item: EmbeddedItem = {
+                    "parser": parser_type,
+                    "vector_type": VectorType.DENSE,
+                    "text": dense_text,
+                    "vector": dense_vec,
+                }
+                dense_embeddings.append(dense_item)
 
-        # Reattach metadata + build EmbeddingItem objects
-        for (parser_type, text), vec in zip(dense_texts, vectors, strict=True):
-            item: EmbeddedItem = {
-                "parser": parser_type,
-                "vector_type": VectorType.DENSE,
-                "text": text,
-                "vector": vec,
-            }
-            embeddings.append(item)
+        # Sparse
+        sparse_texts_list = [text for _, text in sparse_texts]
+        # One sparse batch call
+        if sparse_texts_list:
+            sparse_vectors = await self.sparse.aembed_batch(sparse_texts_list)
+            for (parser_type, sparse_text), sparse_vec in zip(sparse_texts, sparse_vectors, strict=True):
+                sparse_item: EmbeddedItem = {
+                    "parser": parser_type,
+                    "vector_type": VectorType.SPARSE,
+                    "text": sparse_text,
+                    "vector": sparse_vec,
+                }
+                sparse_embeddings.append(sparse_item)
 
-        return embeddings
+        return dense_embeddings + sparse_embeddings
