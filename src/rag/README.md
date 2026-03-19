@@ -19,6 +19,7 @@ This folder contains the query-time retrieval pipeline. It orchestrates parsing,
   {"parser": QUERY_EXPANSION, "text": "who controls a clearing"},
 ]
 ```
+`QUERY_EXPANSION_MAX` limits how many expansion lines are used, even if the LLM returns more.
 
 ### 2) Embed dense + sparse
 `EmbedComponent.run()` batches by vector type and returns a **single flat list** of embedded items:
@@ -68,9 +69,35 @@ Chronological order of batches for a single query:
 4. **Sparse retrieval batch** – `sparse_batch_search(...)` sends one `query_batch_points` request for all sparse vectors.
 
 ## Retrieval Settings
-- Retrieval defaults live in `src/rag/settings.py` (embed models, batch size, top_k, chat model).
+- Retrieval defaults live in `src/rag/settings.py`:
+  - `TOP_K`: final number of documents returned after fusion.
+  - `CANDIDATE_LIMIT`: per-retriever candidate depth fetched from Qdrant.
+  - `QUERY_EXPANSION_MAX`: hard cap on how many query expansions are used.
+  - `DENSE_EMBED_MODEL`, `SPARSE_EMBED_MODEL`, `SPARSE_BATCH_SIZE`, `CHAT_MODEL`.
 - Qdrant connection + vector names live in `src/qdrant/settings.py`.
 - Secrets are in `.env`.
+
+## `CANDIDATE_LIMIT` vs `TOP_K` (Concrete Example)
+Think of these as two different knobs:
+- `CANDIDATE_LIMIT` controls retrieval depth (recall).
+- `TOP_K` controls final output size.
+
+Example with `QUERY_EXPANSION_MAX=3`, `CANDIDATE_LIMIT=20`, and `TOP_K=5`:
+1. Parsers produce up to 5 query texts total (`identity` + `rephrase` + up to 3 expansions).
+2. Dense retrieval runs one ranked list per dense query vector:
+   - up to 5 dense lists
+   - each list up to 20 docs
+   - up to 100 dense rows before fusion
+3. Sparse retrieval does the same:
+   - up to 5 sparse lists
+   - each list up to 20 docs
+   - up to 100 sparse rows before fusion
+4. RRF fuses all ranked lists (and deduplicates by document id).
+5. Final truncation applies `TOP_K`, so only the best 5 fused docs are returned.
+
+Important nuance:
+- This is not one global "top 100 dense + top 100 sparse" list.
+- It is multiple per-vector ranked lists that are fused together.
 
 ## Entry Point
 Run the query REPL:

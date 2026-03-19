@@ -10,14 +10,17 @@ from rag.retrieval.base import ParserType
 
 class QueryExpansion:
     """
-    Expand the user query into 1-3 distinct expansions that keep the original intent intact.
+    Expand the user query into up to `max_expansions` distinct expansions.
     """
 
     parser_type = ParserType.QUERY_EXPANSION
 
-    def __init__(self, prompt: ChatPromptTemplate, llm) -> None:
+    def __init__(self, prompt: ChatPromptTemplate, llm, *, max_expansions: int) -> None:
+        if max_expansions < 1:
+            raise ValueError("max_expansions must be >= 1")
         self.prompt = prompt
         self.llm = llm
+        self.max_expansions = max_expansions
 
     def chain(self):
         return self.prompt | self.llm | StrOutputParser()
@@ -27,6 +30,8 @@ class QueryExpansion:
         if not isinstance(query, str):
             raise ValueError("payload must be of type `str`")
 
-        expansions = await self.chain().ainvoke({"query": query})
+        expansions = await self.chain().ainvoke({"query": query, "max_expansions": self.max_expansions})
         # split by new lines, remove empty results, and trim whitespace
-        return [expansion.strip() for expansion in expansions.splitlines() if expansion.strip()]
+        cleaned = [expansion.strip() for expansion in expansions.splitlines() if expansion.strip()]
+        # make sure we don't return more than max_expansions
+        return cleaned[: self.max_expansions]
