@@ -1,6 +1,6 @@
 # RAG Retrieval Overview
 
-This folder contains the query-time retrieval pipeline. It orchestrates parsing, embedding, retrieval, and aggregation.
+This folder contains the query-time retrieval pipeline. It orchestrates parsing, embedding, retrieval, fusion, and reranking.
 
 ## End-to-End Flow (Dense + Sparse)
 
@@ -58,8 +58,12 @@ Why batching:
 ### 4) Fusion (RRF)
 RRF combines dense + sparse ranked lists by **rank position**, not raw scores. Docs appearing in both lists are ranked higher.
 
-### 5) Final output
-The top‑k fused documents are returned and used as context for the chat model.
+### 5) Reranking (LLM pointwise)
+When enabled, the reranker scores each `(query, chunk)` pair from the fused pool and reorders by relevance score.
+If reranking fails (timeout/API/parse error), the pipeline falls back to fused ranking.
+
+### 6) Final output
+The top‑k reranked documents are returned (or fused docs if fallback was used) and used as context for the chat model.
 
 ## Batch Flow (Query Time)
 Chronological order of batches for a single query:
@@ -67,11 +71,17 @@ Chronological order of batches for a single query:
 2. **Sparse query embedding batch** – `SparseBM25Embedder.aembed_batch(...)` on all sparse query texts.
 3. **Dense retrieval batch** – `dense_batch_search(...)` sends one `query_batch_points` request for all dense vectors.
 4. **Sparse retrieval batch** – `sparse_batch_search(...)` sends one `query_batch_points` request for all sparse vectors.
+5. **Fusion pool selection** – RRF/Simple returns a pool for reranking (`RERANK_CANDIDATE_K`) or final docs (`TOP_K`) when reranking is disabled.
+6. **Reranker scoring** – one pointwise relevance score per candidate.
 
 ## Retrieval Settings
 - Retrieval defaults live in `src/rag/settings.py`:
-  - `TOP_K`: final number of documents returned after fusion.
+  - `TOP_K`: final number of documents returned after reranking (or fusion fallback).
   - `CANDIDATE_LIMIT`: per-retriever candidate depth fetched from Qdrant.
+  - `RERANK_ENABLED`: enable/disable reranker stage.
+  - `RERANK_MODEL`: model used to score each query-chunk pair.
+  - `RERANK_CANDIDATE_K`: number of fused candidates to rerank.
+  - `RERANK_MAX_CONCURRENCY`: max concurrent rerank scoring requests.
   - `QUERY_EXPANSION_MAX`: hard cap on how many query expansions are used.
   - `DENSE_EMBED_MODEL`, `SPARSE_EMBED_MODEL`, `SPARSE_BATCH_SIZE`, `CHAT_MODEL`.
 - Qdrant connection + vector names live in `src/qdrant/settings.py`.
@@ -81,6 +91,7 @@ Chronological order of batches for a single query:
 Think of these as two different knobs:
 - `CANDIDATE_LIMIT` controls retrieval depth (recall).
 - `TOP_K` controls final output size.
+- `RERANK_CANDIDATE_K` controls how many fused candidates enter reranking.
 
 Example with `QUERY_EXPANSION_MAX=3`, `CANDIDATE_LIMIT=20`, and `TOP_K=5`:
 1. Parsers produce up to 5 query texts total (`identity` + `rephrase` + up to 3 expansions).
@@ -93,7 +104,7 @@ Example with `QUERY_EXPANSION_MAX=3`, `CANDIDATE_LIMIT=20`, and `TOP_K=5`:
    - each list up to 20 docs
    - up to 100 sparse rows before fusion
 4. RRF fuses all ranked lists (and deduplicates by document id).
-5. Final truncation applies `TOP_K`, so only the best 5 fused docs are returned.
+5. Reranker scores the fused pool and final truncation applies `TOP_K`.
 
 Important nuance:
 - This is not one global "top 100 dense + top 100 sparse" list.

@@ -7,20 +7,22 @@ from langchain_openai import ChatOpenAI
 
 from prompts.query_expansion import query_expansion_prompt
 from prompts.query_rephrase import query_rephrase_prompt
+from prompts.rerank_pointwise import rerank_pointwise_prompt
 from qdrant.settings import qdrant_settings
 from rag.retrieval.aggregators.rrf import RRFAggregator
 from rag.retrieval.aggregators.simple import SimpleScoreAggregator
-from rag.retrieval.base import ParserType, RequestArgs, RetrievalType, RetrieverConfig
+from rag.retrieval.base import ParserType, RequestArgs, Reranker, RetrievalType, RetrieverConfig
 from rag.retrieval.embedders.processor import EmbedComponent, ParserComponent
 from rag.retrieval.parsers.identity import QueryIdentity
 from rag.retrieval.parsers.query_expansion import QueryExpansion
 from rag.retrieval.parsers.query_rephrase import QueryRephrase
+from rag.retrieval.rerankers.llm_pointwise import LLMPointwiseReranker
 from rag.retrieval.retrievers.processor import RetrievalComponent
 from rag.settings import retrieval_settings
 
 """
 Top level orchestrator.
-Query -> Parsers -> Embedders -> Retrievers -> Aggregator
+Query -> Parsers -> Embedders -> Retrievers -> Aggregator -> Reranker (optional)
 
 It contains composition, not business logic.
 
@@ -46,7 +48,9 @@ class RetrievalPipeline:
     embed_component: EmbedComponent
     retrieval_component: RetrievalComponent
     aggregator: SimpleScoreAggregator | RRFAggregator
+    reranker: Reranker | None
     configs: list[RetrieverConfig]
+    rerank_candidate_k: int
     top_k: int
 
     @classmethod
@@ -112,12 +116,23 @@ class RetrievalPipeline:
         else:
             aggregator = SimpleScoreAggregator()
 
+        reranker: Reranker | None = None
+        if retrieval_settings.RERANK_ENABLED:
+            rerank_llm = ChatOpenAI(model=retrieval_settings.RERANK_MODEL, temperature=0)
+            reranker = LLMPointwiseReranker(
+                llm=rerank_llm,
+                prompt=rerank_pointwise_prompt,
+                max_concurrency=retrieval_settings.RERANK_MAX_CONCURRENCY,
+            )
+
         return cls(
             parser_component=parser_component,
             embed_component=embed_component,
             retrieval_component=retrieval_component,
             aggregator=aggregator,
+            reranker=reranker,
             configs=configs,
+            rerank_candidate_k=retrieval_settings.RERANK_CANDIDATE_K,
             top_k=top_k,
         )
 
@@ -125,4 +140,12 @@ class RetrievalPipeline:
         parsed = await self.parser_component.run(query)
         embeddings = await self.embed_component.run(parsed)
         results = await self.retrieval_component.run(embeddings, self.configs)
-        return self.aggregator.aggregate(results, top_k=self.top_k)
+        pool_k = self.rerank_candidate_k if self.reranker is not None else self.top_k
+        fused = self.aggregator.aggregate(results, top_k=pool_k)
+        if self.reranker is None:
+            return fused[: self.top_k]
+        try:
+            return await self.reranker.arerank(query=query, candidates=fused, top_k=self.top_k)
+        except Exception:
+            # Graceful degradation: preserve retrieval behavior if reranking fails.
+            return fused[: self.top_k]
