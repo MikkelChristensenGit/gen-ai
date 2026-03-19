@@ -122,6 +122,12 @@ The aggregator (RRF or Simple) then flattens this into a single ranked list.
 Because points store **both** dense and sparse vectors, you must name them.
 At query time, you select the target vector using `using=<vector_name>`.
 
+## Batch Flow (Ingestion)
+Chronological order of batches during ingestion:
+1. **Dense chunk embedding batch** – `DenseEmbedder.aembed_batch(...)` over all chunk texts.
+2. **Sparse chunk embedding batch** – `SparseBM25Embedder.aembed_batch(...)` over all chunk texts.
+3. **Qdrant upsert batches** – points are upserted in chunks (`BATCH_SIZE = 128`) to stay under payload limits.
+
 ## Notes / Tips
 - Ingestion **recreates** the collection each run. This will delete existing points.
 - Sparse embeddings are generated via FastEmbed (default: `Qdrant/bm25`).

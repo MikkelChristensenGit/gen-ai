@@ -60,7 +60,8 @@ class IngestionPipeline:
 
         dim = len(dense_vectors[0])
         # 3) Create collection with named dense + named sparse vectors
-        self.qdrant_client.recreate_collection(
+        self.qdrant_client.recreate_collection(  # TODO check if collection exists and only create if not,
+            # to avoid accidental data loss
             collection_name=self.collection_name,
             vectors_config={
                 self.dense_vector_name: models.VectorParams(size=dim, distance=models.Distance.COSINE),
@@ -83,7 +84,7 @@ class IngestionPipeline:
                     payload={"page_content": doc.page_content, "metadata": doc.metadata},
                 )
             )
-        BATCH_SIZE = 128
+        BATCH_SIZE = 128  # TODO make this configurable and test if needed at all
         for i in range(0, len(points), BATCH_SIZE):
             batch = points[i : i + BATCH_SIZE]
             self.qdrant_client.upsert(collection_name=self.collection_name, points=batch)

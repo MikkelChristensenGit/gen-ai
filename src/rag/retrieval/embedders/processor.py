@@ -90,6 +90,7 @@ class EmbedComponent:
     ) -> EmbedComponent:
         vector_types_by_parser = {
             ParserType.QUERY_IDENTITY: {VectorType.DENSE, VectorType.SPARSE},
+            ParserType.QUERY_REPHRASE: {VectorType.DENSE, VectorType.SPARSE},
             ParserType.QUERY_EXPANSION: {VectorType.DENSE, VectorType.SPARSE},
         }
         return cls(

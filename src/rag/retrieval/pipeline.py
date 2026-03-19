@@ -6,6 +6,7 @@ from langchain_core.documents import Document
 from langchain_openai import ChatOpenAI
 
 from prompts.query_expansion import query_expansion_prompt
+from prompts.query_rephrase import query_rephrase_prompt
 from qdrant.settings import qdrant_settings
 from rag.retrieval.aggregators.rrf import RRFAggregator
 from rag.retrieval.aggregators.simple import SimpleScoreAggregator
@@ -13,6 +14,7 @@ from rag.retrieval.base import ParserType, RequestArgs, RetrievalType, Retriever
 from rag.retrieval.embedders.processor import EmbedComponent, ParserComponent
 from rag.retrieval.parsers.identity import QueryIdentity
 from rag.retrieval.parsers.query_expansion import QueryExpansion
+from rag.retrieval.parsers.query_rephrase import QueryRephrase
 from rag.retrieval.retrievers.processor import RetrievalComponent
 from rag.settings import retrieval_settings
 
@@ -60,7 +62,11 @@ class RetrievalPipeline:
     ) -> RetrievalPipeline:
         llm = ChatOpenAI(model=retrieval_settings.CHAT_MODEL)
         parser_component = ParserComponent(
-            parsers=[QueryIdentity(), QueryExpansion(prompt=query_expansion_prompt, llm=llm)]
+            parsers=[
+                QueryIdentity(),
+                QueryRephrase(prompt=query_rephrase_prompt, llm=llm),
+                QueryExpansion(prompt=query_expansion_prompt, llm=llm),
+            ]
         )
         embed_component = EmbedComponent.from_default(
             dense_embed_model=dense_embed_model,
@@ -71,7 +77,7 @@ class RetrievalPipeline:
 
         configs = [
             RetrieverConfig(
-                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_EXPANSION],
+                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_REPHRASE, ParserType.QUERY_EXPANSION],
                 type=RetrievalType.DENSE,
                 request_args=RequestArgs(
                     collection_name=collection_name,
@@ -82,7 +88,7 @@ class RetrievalPipeline:
                 ),
             ),
             RetrieverConfig(
-                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_EXPANSION],
+                parser=[ParserType.QUERY_IDENTITY, ParserType.QUERY_REPHRASE, ParserType.QUERY_EXPANSION],
                 type=RetrievalType.SPARSE,
                 request_args=RequestArgs(
                     collection_name=collection_name,
