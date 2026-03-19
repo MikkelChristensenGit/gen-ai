@@ -52,8 +52,6 @@ class ParserComponent:
 
         parsed: list[ParsedQuery] = []
         for parser, output in zip(self.parsers, outputs, strict=True):
-            # self.parsers = [QueryIdentity(), QueryExpansion()]
-            # outputs = ["original query", ["exp1", "exp2"]]
             if isinstance(output, str):
                 texts = [output]
             elif isinstance(output, list) and all(isinstance(item, str) for item in output):

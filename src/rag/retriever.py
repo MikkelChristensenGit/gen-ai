@@ -16,7 +16,7 @@ async def repl() -> None:
         qdrant_api_key=qdrant_settings.QDRANT_API_KEY,
         collection_name=qdrant_settings.COLLECTION,
         dense_embed_model=retrieval_settings.DENSE_EMBED_MODEL,
-        candidate_limit=retrieval_settings.TOP_K,
+        candidate_limit=retrieval_settings.CANDIDATE_LIMIT,
         top_k=retrieval_settings.TOP_K,
     )
 

@@ -65,7 +65,11 @@ class RetrievalPipeline:
             parsers=[
                 QueryIdentity(),
                 QueryRephrase(prompt=query_rephrase_prompt, llm=llm),
-                QueryExpansion(prompt=query_expansion_prompt, llm=llm),
+                QueryExpansion(
+                    prompt=query_expansion_prompt,
+                    llm=llm,
+                    max_expansions=retrieval_settings.QUERY_EXPANSION_MAX,
+                ),
             ]
         )
         embed_component = EmbedComponent.from_default(
