@@ -5,6 +5,8 @@ from collections.abc import Iterable, Sequence
 from langchain_core.documents import Document
 from qdrant_client import AsyncQdrantClient, models
 
+from rag.retrieval.base import DenseVector, SparseVector
+
 # A DB adapter around AsyncQdrantClient that:
 # - accepts vectors and requests args
 # - performs batch queries
@@ -67,7 +69,7 @@ class QdrantRetriever:
     async def dense_batch_search(
         self,
         *,
-        vectors: Sequence[list[float]],
+        vectors: Sequence[DenseVector],
         collection_name: str,
         limit: int,
         filter: models.Filter | None = None,
@@ -101,6 +103,68 @@ class QdrantRetriever:
             )
             for v in vectors
         ]
+        results = await self.client.query_batch_points(
+            collection_name=collection_name,
+            requests=requests,
+        )
+        return [self._map_points(r.points, collection_name=collection_name) for r in results]
+
+    async def sparse_batch_search(
+        self,
+        vectors: Sequence[SparseVector],
+        collection_name: str,
+        limit: int,
+        filter: models.Filter | None = None,
+        using: str | None = None,
+        score_threshold: float | None = None,
+    ) -> list[list[tuple[Document, float]]]:
+        """
+        Builds a batch of Qdrant QueryRequests from the input sparse vectors,
+        runs them in one call, then converts each result set into (Document, score) pairs with metadata.
+        Uses QueryRequest.query with a SparseVector payload and `using` to select the sparse vector name.
+        Example:
+        1. Input query: "What is the capital of France?"
+        Sparse embedder converts that into a sparse vector like ~ {"indices": [12, 45, 78], "values": [0.8, 0.5, 0.3]}.
+        2. sparse_batch_search input: we call it with a list of vectors (batch)
+        vectors = [
+            {"indices": [12, 45, 78], "values": [0.8, 0.5, 0.3]},
+        ]
+        3. Inside sparse_batch_search, for each v in vectors: build SparseVector:
+        sparse_vec = models.SparseVector(indices=v["indices"], values=v["values"])
+        Build QueryRequest.
+        4. All requests are sent in one batch: results = await ...
+        5. Qdrant scores results
+        Qdrant computes sparse similarity (dot product between query vector and stored sparse vectors).
+        Points that overlap with terms like "capital" and "France" will get higher scores.
+        6. Mapping results: The _map_points converts Qdrant results into:
+        [
+            [
+            (Document(page_content="Paris is the capital of France ...", metadata={...}), 0.92),
+            (Document(page_content="France is a country in Europe ...", metadata={...}), 0.61),
+            ]
+        ]
+        so we end with a list of results per input vector.
+
+        Summary in one sentence:
+        sparse_batch_search turns the query into a sparse vector, asks
+        Qdrant to match it against stored sparse vectors, and returns ranked documents with scores.
+        """
+        requests = []
+        for v in vectors:
+            sparse_vec = models.SparseVector(indices=v["indices"], values=v["values"])
+
+            requests.append(
+                models.QueryRequest(
+                    query=sparse_vec,
+                    limit=limit,
+                    filter=filter,
+                    using=using,
+                    score_threshold=score_threshold,
+                    with_payload=True,
+                    with_vector=False,
+                    offset=0,
+                )
+            )
         results = await self.client.query_batch_points(
             collection_name=collection_name,
             requests=requests,

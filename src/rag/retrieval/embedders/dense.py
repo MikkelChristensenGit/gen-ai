@@ -4,6 +4,8 @@ import asyncio
 
 from langchain_openai import OpenAIEmbeddings
 
+from rag.retrieval.base import DenseVector
+
 
 class DenseEmbedder:
     """
@@ -18,10 +20,12 @@ class DenseEmbedder:
     def __init__(self, model: str) -> None:
         self.emb = OpenAIEmbeddings(model=model)
 
-    async def aembed_batch(self, queries: list[str]) -> list[list[float]]:
+    async def aembed_batch(self, queries: list[str]) -> list[DenseVector]:
         """The batching is simply that we pass `queries: list[str]` instead of a single string."""
         try:
             async with asyncio.timeout(self.timeout_seconds):
-                return await self.emb.aembed_documents(queries)
+                vectors = await self.emb.aembed_documents(queries)
+                return [DenseVector(v) for v in vectors]
         except TimeoutError:
-            return await self.emb.aembed_documents(queries)
+            vectors = await self.emb.aembed_documents(queries)
+            return [DenseVector(v) for v in vectors]

@@ -7,7 +7,7 @@ from typing import Any
 from langchain_core.documents import Document
 from qdrant_client import AsyncQdrantClient
 
-from rag.retrieval.base import EmbeddedItem, RetrievalType, RetrieverConfig, VectorType
+from rag.retrieval.base import DenseVector, EmbeddedItem, RetrievalType, RetrieverConfig, SparseVector, VectorType
 from rag.retrieval.retrievers.qdrant_retriever import QdrantRetriever
 
 """
@@ -39,18 +39,30 @@ This prevents the "if/else explosion" in big systems.
 """
 
 
-def _dense_vectors_for_config(embeddings: list[EmbeddedItem], cfg: RetrieverConfig) -> list[list[float]]:
+def _dense_vectors_for_config(embeddings: list[EmbeddedItem], cfg: RetrieverConfig) -> list[DenseVector]:
     """
     Filter embeddings for those relevant to the config and of DENSE type. It builds a list of vectors and returns it.
     """
     wanted_parsers = set(cfg.parser)
-    dense: list[list[float]] = []
+    dense: list[DenseVector] = []
     for emb in embeddings:
         if emb["parser"] not in wanted_parsers:
             continue
         if emb["vector_type"] == VectorType.DENSE:
             dense.append(emb["vector"])
     return dense
+
+
+def _sparse_vectors_for_config(embeddings: list[EmbeddedItem], cfg: RetrieverConfig) -> list[SparseVector]:
+    """ """
+    wanted_parsers = set(cfg.parser)
+    sparse: list[SparseVector] = []
+    for emb in embeddings:
+        if emb["parser"] not in wanted_parsers:
+            continue
+        if emb["vector_type"] == VectorType.SPARSE:
+            sparse.append(emb["vector"])
+    return sparse
 
 
 class RetrievalComponent:
@@ -72,24 +84,50 @@ class RetrievalComponent:
     async def run(
         self, embedding: list[EmbeddedItem], configs: list[RetrieverConfig]
     ) -> list[list[tuple[Document, float]]]:
-        tasks: list[asyncio.Task[Any]] = []
+        dense_tasks: list[asyncio.Task[Any]] = []
+        sparse_tasks: list[asyncio.Task[Any]] = []
 
         for cfg in configs:
             opts = cfg.request_args.model_dump()
-            if cfg.type is not RetrievalType.DENSE:
-                # Step A supports only DENSE
+            if cfg.type not in {RetrievalType.DENSE, RetrievalType.SPARSE, RetrievalType.HYBRID}:
                 continue
 
-            dense = _dense_vectors_for_config(embedding, cfg)
-            if not dense:
-                continue
+            # Dense
+            if cfg.type == RetrievalType.DENSE:
+                dense = _dense_vectors_for_config(embedding, cfg)
+                if not dense:
+                    continue
+                coro_dense = self.retriever.dense_batch_search(vectors=dense, **opts)
+                dense_tasks.append(asyncio.create_task(coro_dense))
 
-            coro = self.retriever.dense_batch_search(vectors=dense, **opts)
-            tasks.append(asyncio.create_task(coro))
+            # Sparse
+            if cfg.type == RetrievalType.SPARSE:
+                sparse = _sparse_vectors_for_config(embedding, cfg)
+                if not sparse:
+                    continue
+                coro_sparse = self.retriever.sparse_batch_search(vectors=sparse, **opts)
+                sparse_tasks.append(asyncio.create_task(coro_sparse))
 
-        if not tasks:
+            # Hybrid
+            if cfg.type == RetrievalType.HYBRID:
+                dense = _dense_vectors_for_config(embedding, cfg)
+                sparse = _sparse_vectors_for_config(embedding, cfg)
+                if not dense and not sparse:
+                    continue
+                coro_dense = self.retriever.dense_batch_search(vectors=dense, **opts)
+                coro_sparse = self.retriever.sparse_batch_search(vectors=sparse, **opts)
+                if dense:
+                    dense_tasks.append(asyncio.create_task(coro_dense))
+                if sparse:
+                    sparse_tasks.append(asyncio.create_task(coro_sparse))
+
+        if not dense_tasks and not sparse_tasks:
             return []
-
-        results = await asyncio.gather(*tasks)
+        dense_results: list[list[list[tuple[Document, float]]]] = []
+        sparse_results: list[list[list[tuple[Document, float]]]] = []
+        if dense_tasks:
+            dense_results = await asyncio.gather(*dense_tasks)
+        if sparse_tasks:
+            sparse_results = await asyncio.gather(*sparse_tasks)
         # Flatten list[list[list[(doc,score)]]]
-        return list(chain.from_iterable(results))
+        return list(chain.from_iterable(dense_results + sparse_results))

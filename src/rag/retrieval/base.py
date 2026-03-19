@@ -131,6 +131,15 @@ class EmbeddedItem(TypedDict):
     vector: Any
 
 
+class DenseVector(list[float]):
+    """Marker type for dense vectors."""
+
+
+class SparseVector(TypedDict):
+    indices: list[int]
+    values: list[float]
+
+
 # -- Protocols --
 # These define interface that other classes must implement.
 # Let's us swap implementations, different parser, embedder, retriever
