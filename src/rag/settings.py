@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     TOP_K: int = Field(default=5, ge=1)
     CANDIDATE_LIMIT: int = Field(default=20, ge=1)
     QUERY_EXPANSION_MAX: int = Field(default=3, ge=1)
+    RERANK_ENABLED: bool = Field(default=True)
+    RERANK_MODEL: str = Field(default="gpt-4o-mini")
+    RERANK_CANDIDATE_K: int = Field(default=10, ge=1)
+    RERANK_MAX_CONCURRENCY: int = Field(default=5, ge=1)
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
     # Dense
     DENSE_EMBED_MODEL: str = Field(default="text-embedding-3-small")
@@ -23,6 +27,8 @@ class Settings(BaseSettings):
     def validate_retrieval_limits(self) -> "Settings":
         if self.CANDIDATE_LIMIT < self.TOP_K:
             raise ValueError("CANDIDATE_LIMIT must be greater than or equal to TOP_K")
+        if self.RERANK_CANDIDATE_K < self.TOP_K:
+            raise ValueError("RERANK_CANDIDATE_K must be greater than or equal to TOP_K")
         return self
 
 

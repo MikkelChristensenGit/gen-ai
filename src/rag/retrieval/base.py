@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import StrEnum, auto
 from typing import Any, Protocol, TypedDict
 
+from langchain_core.documents import Document
 from pydantic import BaseModel, Field
 from qdrant_client import models
 
@@ -158,3 +159,13 @@ class Embedder(Protocol):
 
 class Retriever(Protocol):
     async def dense_batch_search(self, *, vectors: list[Any], **kwargs: Any) -> list[list[Any]]: ...
+
+
+class Reranker(Protocol):
+    async def arerank(
+        self,
+        *,
+        query: str,
+        candidates: list[tuple[Document, float]],
+        top_k: int,
+    ) -> list[tuple[Document, float]]: ...
